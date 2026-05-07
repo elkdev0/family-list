@@ -1,1227 +1,964 @@
 <!DOCTYPE html>
 <html lang="en" dir="ltr" id="htmlRoot">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Bill Tracker | متتبع الفواتير</title>
-<link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=DM+Sans:wght@300;400;500;600&family=Noto+Kufi+Arabic:wght@400;500;600&display=swap" rel="stylesheet">
-<style>
-  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-
-  :root {
-    --bg: #0f0f11;
-    --surface: #18181c;
-    --surface2: #222228;
-    --surface3: #2a2a32;
-    --border: rgba(255,255,255,0.08);
-    --border2: rgba(255,255,255,0.14);
-    --text: #f0eff4;
-    --text2: #9e9da8;
-    --text3: #666474;
-    --red: #e24b4a;
-    --red-bg: #2c1414;
-    --red-text: #f09595;
-    --amber: #ef9f27;
-    --amber-bg: #2a1e08;
-    --amber-text: #fac775;
-    --green: #3fba78;
-    --green-bg: #0d2318;
-    --green-text: #9fe1cb;
-    --blue: #378add;
-    --blue-bg: #0c1e35;
-    --blue-text: #85b7eb;
-    --purple: #7f77dd;
-    --purple-bg: #1a1836;
-    --purple-text: #afa9ec;
-    --accent: #7f77dd;
-    --radius: 10px;
-    --radius-sm: 6px;
-  }
-
-  /* RTL mode */
-  [dir="rtl"] body { font-family: 'Noto Kufi Arabic', 'DM Sans', sans-serif; }
-  [dir="rtl"] .bill-card.past-due { border-left: none; border-right: 3px solid var(--red); }
-  [dir="rtl"] .bill-card.due-soon { border-left: none; border-right: 3px solid var(--amber); }
-  [dir="rtl"] .bill-card.paid { border-left: none; border-right: 3px solid var(--green); }
-  [dir="rtl"] .bill-card.not-due { border-left: none; border-right: 3px solid var(--border2); }
-  [dir="rtl"] .bill-amount-col { text-align: left; }
-  [dir="rtl"] .priority-banner { text-align: right; }
-  [dir="rtl"] .member-tabs { direction: rtl; }
-
-  body {
-    font-family: 'DM Sans', sans-serif;
-    background: var(--bg);
-    color: var(--text);
-    min-height: 100vh;
-    line-height: 1.6;
-  }
-
-  /* ── HEADER ── */
-  .app-header {
-    background: var(--surface);
-    border-bottom: 1px solid var(--border);
-    padding: 14px 24px;
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 12px;
-    position: sticky;
-    top: 0;
-    z-index: 100;
-    flex-wrap: wrap;
-  }
-  .app-title { font-size: 17px; font-weight: 600; letter-spacing: -0.3px; }
-  .app-title span { color: var(--accent); }
-  .header-right { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
-  .header-date { font-size: 12px; color: var(--text2); font-family: 'DM Mono', monospace; }
-
-  /* Language toggle */
-  .lang-toggle {
-    display: flex;
-    background: var(--surface2);
-    border: 1px solid var(--border2);
-    border-radius: 99px;
-    overflow: hidden;
-  }
-  .lang-btn {
-    padding: 5px 14px;
-    font-size: 12px;
-    font-weight: 600;
-    background: none;
-    border: none;
-    cursor: pointer;
-    color: var(--text3);
-    font-family: inherit;
-    transition: all 0.15s;
-    border-radius: 99px;
-  }
-  .lang-btn.active { background: var(--accent); color: #fff; }
-  .lang-btn:hover:not(.active) { color: var(--text); }
-
-  /* ── BODY ── */
-  .app-body { max-width: 960px; margin: 0 auto; padding: 24px 18px 80px; }
-
-  /* ── SHARING INFO BOX ── */
-  .share-info {
-    background: var(--blue-bg);
-    border: 1px solid rgba(55,138,221,0.2);
-    border-radius: var(--radius);
-    padding: 16px 18px;
-    margin-bottom: 22px;
-    display: none;
-  }
-  .share-info.show { display: block; }
-  .share-info h3 { font-size: 13px; font-weight: 600; color: var(--blue-text); margin-bottom: 10px; }
-  .share-info p { font-size: 12px; color: var(--text2); line-height: 1.7; margin-bottom: 6px; }
-  .share-info .share-option {
-    background: rgba(55,138,221,0.08);
-    border-radius: var(--radius-sm);
-    padding: 8px 12px;
-    margin: 6px 0;
-    font-size: 12px;
-    color: var(--text2);
-  }
-  .share-info .share-option strong { color: var(--blue-text); font-weight: 600; }
-  .share-toggle {
-    background: var(--blue-bg);
-    border: 1px solid rgba(55,138,221,0.25);
-    border-radius: var(--radius-sm);
-    color: var(--blue-text);
-    font-family: inherit;
-    font-size: 12px;
-    font-weight: 500;
-    padding: 7px 14px;
-    cursor: pointer;
-    margin-bottom: 18px;
-    transition: opacity 0.15s;
-    display: flex;
-    align-items: center;
-    gap: 6px;
-  }
-  .share-toggle:hover { opacity: 0.85; }
-
-  /* ── SUMMARY ── */
-  .summary-grid {
-    display: grid;
-    grid-template-columns: repeat(4, 1fr);
-    gap: 10px;
-    margin-bottom: 22px;
-  }
-  .summary-card {
-    background: var(--surface);
-    border: 1px solid var(--border);
-    border-radius: var(--radius);
-    padding: 14px 16px;
-  }
-  .summary-label { font-size: 10px; text-transform: uppercase; letter-spacing: 0.08em; color: var(--text3); margin-bottom: 6px; font-weight: 500; }
-  .summary-amount { font-family: 'DM Mono', monospace; font-size: 20px; font-weight: 500; }
-  .summary-card.danger .summary-amount { color: var(--red); }
-  .summary-card.warn .summary-amount { color: var(--amber); }
-  .summary-card.ok .summary-amount { color: var(--green); }
-  .summary-sub { font-size: 11px; color: var(--text3); margin-top: 4px; }
-
-  /* ── MEMBER FILTER ── */
-  .member-section { margin-bottom: 14px; }
-  .member-label { font-size: 11px; text-transform: uppercase; letter-spacing: 0.07em; color: var(--text3); font-weight: 500; margin-bottom: 7px; }
-  .member-tabs {
-    display: flex;
-    gap: 6px;
-    flex-wrap: wrap;
-  }
-  .member-tab {
-    padding: 5px 13px;
-    font-size: 12px;
-    font-weight: 500;
-    border-radius: 99px;
-    border: 1px solid var(--border2);
-    background: var(--surface);
-    color: var(--text2);
-    cursor: pointer;
-    font-family: inherit;
-    transition: all 0.15s;
-  }
-  .member-tab:hover { color: var(--text); border-color: var(--accent); }
-  .member-tab.active { background: var(--purple-bg); color: var(--purple-text); border-color: rgba(127,119,221,0.35); }
-
-  /* ── TOOLBAR ── */
-  .toolbar { display: flex; align-items: center; gap: 10px; margin-bottom: 14px; flex-wrap: wrap; }
-  .filter-tabs {
-    display: flex;
-    background: var(--surface);
-    border: 1px solid var(--border);
-    border-radius: var(--radius-sm);
-    overflow: hidden;
-    flex: 1;
-    min-width: 0;
-  }
-  .filter-tab {
-    flex: 1;
-    padding: 8px 8px;
-    font-size: 11px;
-    font-weight: 500;
-    color: var(--text2);
-    background: none;
-    border: none;
-    cursor: pointer;
-    transition: all 0.15s;
-    white-space: nowrap;
-    font-family: inherit;
-  }
-  .filter-tab:hover { color: var(--text); background: var(--surface2); }
-  .filter-tab.active { background: var(--surface3); color: var(--text); }
-  .btn-add {
-    background: var(--accent);
-    color: #fff;
-    border: none;
-    border-radius: var(--radius-sm);
-    padding: 9px 16px;
-    font-size: 13px;
-    font-weight: 600;
-    cursor: pointer;
-    font-family: inherit;
-    white-space: nowrap;
-    transition: opacity 0.15s;
-  }
-  .btn-add:hover { opacity: 0.88; }
-
-  /* ── PRIORITY BANNER ── */
-  .priority-banner {
-    background: var(--red-bg);
-    border: 1px solid rgba(226,75,74,0.22);
-    border-radius: var(--radius);
-    padding: 13px 16px;
-    margin-bottom: 18px;
-    display: none;
-  }
-  .priority-banner.show { display: block; }
-  .priority-banner h3 { font-size: 13px; font-weight: 600; color: var(--red-text); margin-bottom: 7px; }
-  .priority-list { font-size: 12px; color: var(--red-text); opacity: 0.85; line-height: 1.9; }
-
-  /* ── BILL CARDS ── */
-  .bill-list { display: flex; flex-direction: column; gap: 8px; }
-  .bill-card {
-    background: var(--surface);
-    border: 1px solid var(--border);
-    border-radius: var(--radius);
-    padding: 14px 16px;
-    display: grid;
-    grid-template-columns: auto 1fr auto auto;
-    gap: 0 14px;
-    align-items: center;
-    transition: border-color 0.15s;
-  }
-  .bill-card:hover { border-color: var(--border2); }
-  .bill-card.past-due { border-left: 3px solid var(--red); }
-  .bill-card.due-soon { border-left: 3px solid var(--amber); }
-  .bill-card.paid { border-left: 3px solid var(--green); opacity: 0.6; }
-  .bill-card.not-due { border-left: 3px solid var(--border2); }
-
-  .bill-check {
-    width: 22px; height: 22px;
-    border-radius: 50%;
-    border: 2px solid var(--border2);
-    cursor: pointer;
-    display: flex; align-items: center; justify-content: center;
-    flex-shrink: 0;
-    transition: all 0.15s;
-    background: none;
-    color: transparent;
-    font-size: 12px;
-  }
-  .bill-check:hover { border-color: var(--green); color: var(--green); }
-  .bill-card.paid .bill-check { border-color: var(--green); color: var(--green); background: var(--green-bg); }
-
-  .bill-name { font-size: 14px; font-weight: 500; }
-  .bill-meta {
-    font-size: 11px; color: var(--text2); margin-top: 3px;
-    display: flex; gap: 10px; flex-wrap: wrap;
-  }
-  .bill-meta-item { display: flex; align-items: center; gap: 3px; }
-  .bill-notes { font-size: 11px; color: var(--text3); margin-top: 4px; line-height: 1.5; }
-
-  /* Family badges on bill cards */
-  .assigned-badge {
-    display: inline-block;
-    font-size: 10px;
-    font-weight: 600;
-    padding: 2px 8px;
-    border-radius: 99px;
-    background: var(--purple-bg);
-    color: var(--purple-text);
-    border: 1px solid rgba(127,119,221,0.2);
-  }
-  .paidby-badge {
-    display: inline-block;
-    font-size: 10px;
-    font-weight: 600;
-    padding: 2px 8px;
-    border-radius: 99px;
-    background: var(--green-bg);
-    color: var(--green-text);
-    border: 1px solid rgba(63,186,120,0.2);
-  }
-
-  .bill-amount-col { text-align: right; }
-  .bill-amount { font-family: 'DM Mono', monospace; font-size: 16px; font-weight: 500; white-space: nowrap; }
-  .bill-card.past-due .bill-amount { color: var(--red); }
-  .bill-card.due-soon .bill-amount { color: var(--amber); }
-  .bill-card.paid .bill-amount { color: var(--green); text-decoration: line-through; }
-
-  .bill-status-badge {
-    display: inline-block;
-    font-size: 10px; font-weight: 600;
-    letter-spacing: 0.04em; text-transform: uppercase;
-    padding: 2px 8px; border-radius: 99px; margin-top: 4px;
-    white-space: nowrap;
-  }
-  .badge-past-due { background: var(--red-bg); color: var(--red-text); }
-  .badge-due-soon { background: var(--amber-bg); color: var(--amber-text); }
-  .badge-paid { background: var(--green-bg); color: var(--green-text); }
-  .badge-not-due { background: var(--surface2); color: var(--text3); }
-
-  .bill-actions { display: flex; gap: 6px; }
-  .btn-icon {
-    background: var(--surface2); border: 1px solid var(--border);
-    border-radius: var(--radius-sm); width: 30px; height: 30px;
-    display: flex; align-items: center; justify-content: center;
-    cursor: pointer; color: var(--text2); font-size: 13px;
-    transition: all 0.15s; font-family: inherit;
-  }
-  .btn-icon:hover { background: var(--surface3); color: var(--text); }
-  .btn-icon.danger:hover { color: var(--red); border-color: var(--red); }
-
-  .section-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px; }
-  .section-title { font-size: 12px; color: var(--text2); font-weight: 500; }
-  .count-badge { background: var(--surface2); color: var(--text3); font-size: 11px; padding: 2px 8px; border-radius: 99px; }
-
-  .empty-state { text-align: center; padding: 50px 20px; color: var(--text3); }
-  .empty-state p { margin-top: 8px; font-size: 13px; }
-
-  /* ── MODAL ── */
-  .modal-overlay {
-    display: none;
-    position: fixed; inset: 0;
-    background: rgba(0,0,0,0.75);
-    z-index: 200;
-    align-items: center; justify-content: center;
-    padding: 20px;
-  }
-  .modal-overlay.open { display: flex; }
-  .modal {
-    background: var(--surface);
-    border: 1px solid var(--border2);
-    border-radius: 14px;
-    width: 100%; max-width: 580px;
-    max-height: 92vh; overflow-y: auto;
-    padding: 22px;
-  }
-  .modal-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 18px; }
-  .modal-title { font-size: 16px; font-weight: 600; }
-  .modal-close {
-    background: var(--surface2); border: 1px solid var(--border);
-    border-radius: var(--radius-sm); width: 30px; height: 30px;
-    cursor: pointer; color: var(--text2); font-size: 16px;
-    display: flex; align-items: center; justify-content: center;
-  }
-  .modal-close:hover { color: var(--text); }
-
-  .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
-  .form-group { display: flex; flex-direction: column; gap: 5px; }
-  .form-group.full { grid-column: 1 / -1; }
-  .form-section-title {
-    grid-column: 1 / -1;
-    font-size: 11px; font-weight: 600;
-    text-transform: uppercase; letter-spacing: 0.07em;
-    color: var(--accent); padding: 6px 0 2px;
-    border-top: 1px solid var(--border);
-    margin-top: 4px;
-  }
-
-  label { font-size: 11px; font-weight: 500; color: var(--text2); text-transform: uppercase; letter-spacing: 0.06em; }
-  input, select, textarea {
-    background: var(--surface2); border: 1px solid var(--border2);
-    border-radius: var(--radius-sm); color: var(--text);
-    font-family: inherit; font-size: 13px;
-    padding: 9px 11px; width: 100%; outline: none;
-    transition: border-color 0.15s;
-  }
-  input:focus, select:focus, textarea:focus { border-color: var(--accent); }
-  select option { background: #222228; }
-  textarea { resize: vertical; min-height: 64px; }
-
-  .checkbox-row { display: flex; align-items: center; gap: 8px; padding: 8px 0; }
-  .checkbox-row input[type="checkbox"] { width: 16px; height: 16px; flex-shrink: 0; accent-color: var(--accent); padding: 0; }
-  .checkbox-row label { text-transform: none; font-size: 13px; font-weight: 400; letter-spacing: 0; color: var(--text); cursor: pointer; }
-
-  .modal-footer { margin-top: 18px; display: flex; gap: 10px; justify-content: flex-end; }
-  .btn-cancel {
-    background: var(--surface2); border: 1px solid var(--border2);
-    border-radius: var(--radius-sm); color: var(--text2);
-    font-family: inherit; font-size: 13px; padding: 9px 16px; cursor: pointer;
-  }
-  .btn-cancel:hover { color: var(--text); }
-  .btn-save {
-    background: var(--accent); border: none;
-    border-radius: var(--radius-sm); color: #fff;
-    font-family: inherit; font-size: 13px; font-weight: 600;
-    padding: 9px 20px; cursor: pointer;
-  }
-  .btn-save:hover { opacity: 0.88; }
-
-  @media (max-width: 620px) {
-    .summary-grid { grid-template-columns: 1fr 1fr; }
-    .bill-card { grid-template-columns: auto 1fr auto; }
-    .bill-actions { display: none; }
-    .form-grid { grid-template-columns: 1fr; }
-    .form-group.full { grid-column: 1; }
-    .form-section-title { grid-column: 1; }
-  }
-</style>
-</head>
-<body>
-
-<!-- HEADER -->
-<header class="app-header">
-  <div class="app-title">💰 <span data-t="appTitle">Bill</span> <span data-t="appTitleSub">Tracker</span></div>
-  <div class="header-right">
-    <div class="header-date" id="headerDate"></div>
-    <!-- Language Toggle -->
-    <div class="lang-toggle">
-      <button class="lang-btn active" id="btnEn" onclick="setLang('en')">EN</button>
-      <button class="lang-btn" id="btnAr" onclick="setLang('ar')">عربي</button>
-    </div>
-  </div>
-</header>
-
-<main class="app-body">
-
-  <!-- SHARING INFO TOGGLE -->
-  <button class="share-toggle" onclick="toggleShareInfo()" id="shareToggleBtn">
-    🔗 <span data-t="howToShare">How to share with family →</span>
-  </button>
-
-  <!-- SHARING INFO BOX -->
-  <div class="share-info" id="shareInfoBox">
-    <h3>📱 <span data-t="shareTitle">Family Sharing Guide</span></h3>
-
-    <p data-t="shareIntro">This app saves data on YOUR device only (localStorage). Each family member who opens the file will have their own separate copy. Here are your options:</p>
-
-    <div class="share-option">
-      <strong>Option 1 — Share the file (Easy, no sync)</strong><br>
-      Upload this HTML file to Google Drive. Share the link with family. Each person opens it in their own browser. Everyone manages their own copy. Best for personal tracking only.
-    </div>
-
-    <div class="share-option">
-      <strong>Option 2 — Google Sheets (Best for beginners 👍)</strong><br>
-      Create a Google Sheet with the same columns. Go to Share → add family email → set permission to Editor (so they can update it). Everyone edits the same sheet in real time from any phone. Free, no coding needed.
-      <br><br>Permissions: <b>Viewer</b> = can only look. <b>Commenter</b> = can add notes. <b>Editor</b> = can change anything. Give Editor only to trusted family members.
-    </div>
-
-    <div class="share-option">
-      <strong>Option 3 — Firebase or Supabase (Best real sync, upgrade later)</strong><br>
-      These are free cloud databases. With a developer's help (or future Claude session), you can connect this app so all changes sync instantly across every phone. This is the best long-term solution for a family tracker.
-    </div>
-
-    <p style="margin-top:10px; color: var(--amber-text); font-size:12px;">
-      💡 <strong>Recommendation:</strong> Start with Google Sheets for family sharing. Use this HTML file for your own personal tracking. Upgrade to Firebase later when needed.
-    </p>
-  </div>
-
-  <!-- SUMMARY CARDS -->
-  <div class="summary-grid">
-    <div class="summary-card danger">
-      <div class="summary-label" data-t="pastDue">Past Due</div>
-      <div class="summary-amount" id="sumPastDue">$0.00</div>
-      <div class="summary-sub" id="sumPastDueCount">0 bills</div>
-    </div>
-    <div class="summary-card warn">
-      <div class="summary-label" data-t="dueThisWeek">Due This Week</div>
-      <div class="summary-amount" id="sumDueSoon">$0.00</div>
-      <div class="summary-sub" id="sumDueSoonCount">0 bills</div>
-    </div>
-    <div class="summary-card ok">
-      <div class="summary-label" data-t="paidThisMonth">Paid This Month</div>
-      <div class="summary-amount" id="sumPaid">$0.00</div>
-      <div class="summary-sub" id="sumPaidCount">0 bills</div>
-    </div>
-    <div class="summary-card total">
-      <div class="summary-label" data-t="totalDue">Total Amount Due</div>
-      <div class="summary-amount" id="sumTotal">$0.00</div>
-      <div class="summary-sub" id="sumTotalCount">0 unpaid</div>
-    </div>
-  </div>
-
-  <!-- PRIORITY BANNER -->
-  <div class="priority-banner" id="priorityBanner">
-    <h3>⚠️ <span data-t="payFirst">Pay These First</span></h3>
-    <div class="priority-list" id="priorityList"></div>
-  </div>
-
-  <!-- FAMILY MEMBER FILTER -->
-  <div class="member-section">
-    <div class="member-label" data-t="filterByMember">Filter by Family Member</div>
-    <div class="member-tabs" id="memberTabs">
-      <button class="member-tab active" data-member="all" onclick="setMember('all', this)" data-t="allMembers">Everyone</button>
-      <button class="member-tab" data-member="Me" onclick="setMember('Me', this)" data-t="memberMe">Me</button>
-      <button class="member-tab" data-member="Mom" onclick="setMember('Mom', this)" data-t="memberMom">Mom</button>
-      <button class="member-tab" data-member="Dad" onclick="setMember('Dad', this)" data-t="memberDad">Dad</button>
-      <button class="member-tab" data-member="Brother" onclick="setMember('Brother', this)" data-t="memberBrother">Brother</button>
-      <button class="member-tab" data-member="Sister" onclick="setMember('Sister', this)" data-t="memberSister">Sister</button>
-      <button class="member-tab" data-member="Shared Family" onclick="setMember('Shared Family', this)" data-t="memberShared">Shared Family</button>
-    </div>
-  </div>
-
-  <!-- STATUS FILTER + ADD BUTTON -->
-  <div class="toolbar">
-    <div class="filter-tabs">
-      <button class="filter-tab active" onclick="setFilter('all', this)" data-t="allBills">All Bills</button>
-      <button class="filter-tab" onclick="setFilter('unpaid', this)" data-t="unpaid">Unpaid</button>
-      <button class="filter-tab" onclick="setFilter('past-due', this)" data-t="pastDueTab">Past Due</button>
-      <button class="filter-tab" onclick="setFilter('due-soon', this)" data-t="dueSoonTab">Due Soon</button>
-      <button class="filter-tab" onclick="setFilter('paid', this)" data-t="paidTab">Paid</button>
-    </div>
-    <button class="btn-add" onclick="openAddModal()" data-t="addBill">+ Add Bill</button>
-  </div>
-
-  <!-- BILL LIST -->
-  <div class="section-header">
-    <span class="section-title" id="listLabel">All Bills</span>
-    <span class="count-badge" id="listCount">0</span>
-  </div>
-  <div class="bill-list" id="billList"></div>
-
-</main>
-
-<!-- ADD / EDIT MODAL -->
-<div class="modal-overlay" id="modalOverlay">
-  <div class="modal">
-    <div class="modal-header">
-      <span class="modal-title" id="modalTitle" data-t="addBillTitle">Add New Bill</span>
-      <button class="modal-close" onclick="closeModal()">✕</button>
-    </div>
-
-    <div class="form-grid">
-
-      <!-- Basic Info -->
-      <div class="form-section-title" data-t="sectionBasic">Bill Information</div>
-
-      <div class="form-group">
-        <label for="fName" data-t="billName">Bill Name *</label>
-        <input type="text" id="fName" placeholder="e.g. Washington Gas">
-      </div>
-      <div class="form-group">
-        <label for="fCompany" data-t="provider">Provider / Company</label>
-        <input type="text" id="fCompany" placeholder="e.g. NOVEC">
-      </div>
-      <div class="form-group">
-        <label for="fAmount" data-t="amountDue">Amount Due *</label>
-        <input type="number" id="fAmount" placeholder="0.00" step="0.01" min="0">
-      </div>
-      <div class="form-group">
-        <label for="fDueDate" data-t="dueDate">Due Date *</label>
-        <input type="date" id="fDueDate">
-      </div>
-      <div class="form-group">
-        <label for="fCategory" data-t="category">Category</label>
-        <select id="fCategory">
-          <option value="Utilities" data-t="catUtilities">Utilities</option>
-          <option value="Rent" data-t="catRent">Rent</option>
-          <option value="Credit Card" data-t="catCredit">Credit Card</option>
-          <option value="Subscription" data-t="catSub">Subscription</option>
-          <option value="Insurance" data-t="catInsurance">Insurance</option>
-          <option value="Phone" data-t="catPhone">Phone</option>
-          <option value="Internet" data-t="catInternet">Internet</option>
-          <option value="Other" data-t="catOther">Other</option>
-        </select>
-      </div>
-      <div class="form-group">
-        <label for="fStatus" data-t="status">Status</label>
-        <select id="fStatus">
-          <option value="not-due" data-t="statusNotDue">Not Due Yet</option>
-          <option value="due-soon" data-t="statusDueSoon">Due Soon</option>
-          <option value="past-due" data-t="statusPastDue">Past Due</option>
-          <option value="paid" data-t="statusPaid">Paid</option>
-        </select>
-      </div>
-
-      <!-- Payment Info -->
-      <div class="form-section-title" data-t="sectionPayment">Payment Details</div>
-
-      <div class="form-group">
-        <label for="fPayMethod" data-t="paymentMethod">Payment Method</label>
-        <input type="text" id="fPayMethod" placeholder="e.g. Bank Transfer, Zelle">
-      </div>
-      <div class="form-group">
-        <label for="fDatePaid" data-t="datePaid">Date Paid</label>
-        <input type="date" id="fDatePaid">
-      </div>
-
-      <!-- Family Fields -->
-      <div class="form-section-title" data-t="sectionFamily">Family Assignment</div>
-
-      <div class="form-group">
-        <label for="fAssignedTo" data-t="assignedTo">Assigned To</label>
-        <select id="fAssignedTo">
-          <option value="Me" data-t="memberMe">Me</option>
-          <option value="Mom" data-t="memberMom">Mom</option>
-          <option value="Dad" data-t="memberDad">Dad</option>
-          <option value="Brother" data-t="memberBrother">Brother</option>
-          <option value="Sister" data-t="memberSister">Sister</option>
-          <option value="Shared Family" data-t="memberShared">Shared Family</option>
-        </select>
-      </div>
-      <div class="form-group">
-        <label for="fPaidBy" data-t="paidBy">Paid By</label>
-        <select id="fPaidBy">
-          <option value="">— Not yet paid —</option>
-          <option value="Me" data-t="memberMe">Me</option>
-          <option value="Mom" data-t="memberMom">Mom</option>
-          <option value="Dad" data-t="memberDad">Dad</option>
-          <option value="Brother" data-t="memberBrother">Brother</option>
-          <option value="Sister" data-t="memberSister">Sister</option>
-          <option value="Shared Family" data-t="memberShared">Shared Family</option>
-        </select>
-      </div>
-
-      <!-- Notes + Recurring -->
-      <div class="form-group full">
-        <label for="fNotes" data-t="notes">Notes</label>
-        <textarea id="fNotes" placeholder="e.g. Includes past-due balance, installment plan info..."></textarea>
-      </div>
-      <div class="form-group full">
-        <div class="checkbox-row">
-          <input type="checkbox" id="fRecurring" checked>
-          <label for="fRecurring" data-t="monthly">This bill repeats every month</label>
-        </div>
-      </div>
-
-    </div>
-
-    <div class="modal-footer">
-      <button class="btn-cancel" onclick="closeModal()" data-t="cancel">Cancel</button>
-      <button class="btn-save" onclick="saveBill()" data-t="save">Save Bill</button>
-    </div>
-  </div>
-</div>
-
-<script>
-// ═══════════════════════════════════════════════════════════
-// TRANSLATIONS — English & Arabic
-// ═══════════════════════════════════════════════════════════
-const T = {
-  en: {
-    appTitle: 'Bill',
-    appTitleSub: 'Tracker',
-    howToShare: 'How to share with family →',
-    shareTitle: 'Family Sharing Guide',
-    shareIntro: 'This app saves data on YOUR device only (localStorage). Each family member who opens the file gets their own separate copy. Options:',
-    pastDue: 'Past Due',
-    dueThisWeek: 'Due This Week',
-    paidThisMonth: 'Paid This Month',
-    totalDue: 'Total Amount Due',
-    payFirst: 'Pay These First',
-    filterByMember: 'Filter by Family Member',
-    allMembers: 'Everyone',
-    memberMe: 'Me',
-    memberMom: 'Mom',
-    memberDad: 'Dad',
-    memberBrother: 'Brother',
-    memberSister: 'Sister',
-    memberShared: 'Shared Family',
-    allBills: 'All Bills',
-    unpaid: 'Unpaid',
-    pastDueTab: 'Past Due',
-    dueSoonTab: 'Due Soon',
-    paidTab: 'Paid',
-    addBill: '+ Add Bill',
-    addBillTitle: 'Add New Bill',
-    editBillTitle: 'Edit Bill',
-    sectionBasic: 'Bill Information',
-    sectionPayment: 'Payment Details',
-    sectionFamily: 'Family Assignment',
-    billName: 'Bill Name *',
-    provider: 'Provider / Company',
-    amountDue: 'Amount Due *',
-    dueDate: 'Due Date *',
-    category: 'Category',
-    status: 'Status',
-    paymentMethod: 'Payment Method',
-    datePaid: 'Date Paid',
-    assignedTo: 'Assigned To',
-    paidBy: 'Paid By',
-    notes: 'Notes',
-    monthly: 'This bill repeats every month',
-    cancel: 'Cancel',
-    save: 'Save Bill',
-    catUtilities: 'Utilities',
-    catRent: 'Rent',
-    catCredit: 'Credit Card',
-    catSub: 'Subscription',
-    catInsurance: 'Insurance',
-    catPhone: 'Phone',
-    catInternet: 'Internet',
-    catOther: 'Other',
-    statusNotDue: 'Not Due Yet',
-    statusDueSoon: 'Due Soon',
-    statusPastDue: 'Past Due',
-    statusPaid: 'Paid',
-    badgePastDue: '⚠ Past Due',
-    badgeDueSoon: '⏰ Due Soon',
-    badgePaid: '✓ Paid',
-    badgeNotDue: 'Upcoming',
-    assignedLabel: 'Assigned:',
-    paidByLabel: 'Paid by:',
-    bills: 'bills',
-    bill: 'bill',
-    unpaidLabel: 'unpaid',
-    noBillsMsg: 'No bills here',
-    noBillsSub: 'Add a new bill or switch filters above',
-    deleteConfirm: 'Delete this bill? This cannot be undone.',
-    errName: 'Please enter a bill name.',
-    errAmount: 'Please enter a valid amount.',
-    errDate: 'Please enter a due date.',
-    daysOverdue: 'days overdue',
-    dayOverdue: 'day overdue',
-    daysLeft: 'days left',
-    dayLeft: 'day left',
-    dueToday: 'Due today!',
-    allBillsLabel: 'All Bills',
-    unpaidBillsLabel: 'Unpaid Bills',
-    pastDueBillsLabel: 'Past Due Bills',
-    dueSoonLabel: 'Due This Week',
-    paidBillsLabel: 'Paid Bills',
-    paidOn: 'Paid on'
-  },
-  ar: {
-    appTitle: 'متتبع',
-    appTitleSub: 'الفواتير',
-    howToShare: 'كيفية المشاركة مع العائلة ←',
-    shareTitle: 'دليل المشاركة العائلية',
-    shareIntro: 'يحفظ هذا التطبيق البيانات على جهازك فقط. كل فرد من العائلة يفتح ملفه الخاص. الخيارات:',
-    pastDue: 'متأخرة',
-    dueThisWeek: 'مستحقة هذا الأسبوع',
-    paidThisMonth: 'مدفوعة هذا الشهر',
-    totalDue: 'إجمالي المبلغ المستحق',
-    payFirst: 'ادفع هذه أولاً',
-    filterByMember: 'تصفية حسب الفرد',
-    allMembers: 'الجميع',
-    memberMe: 'أنا',
-    memberMom: 'الأم',
-    memberDad: 'الأب',
-    memberBrother: 'الأخ',
-    memberSister: 'الأخت',
-    memberShared: 'مشترك عائلي',
-    allBills: 'كل الفواتير',
-    unpaid: 'غير مدفوعة',
-    pastDueTab: 'متأخرة',
-    dueSoonTab: 'مستحقة قريباً',
-    paidTab: 'مدفوعة',
-    addBill: '+ إضافة فاتورة',
-    addBillTitle: 'إضافة فاتورة جديدة',
-    editBillTitle: 'تعديل الفاتورة',
-    sectionBasic: 'معلومات الفاتورة',
-    sectionPayment: 'تفاصيل الدفع',
-    sectionFamily: 'التخصيص العائلي',
-    billName: 'اسم الفاتورة *',
-    provider: 'مزود الخدمة / الشركة',
-    amountDue: 'المبلغ المستحق *',
-    dueDate: 'تاريخ الاستحقاق *',
-    category: 'الفئة',
-    status: 'الحالة',
-    paymentMethod: 'طريقة الدفع',
-    datePaid: 'تاريخ الدفع',
-    assignedTo: 'مخصصة لـ',
-    paidBy: 'دُفعت بواسطة',
-    notes: 'ملاحظات',
-    monthly: 'هذه الفاتورة تتكرر كل شهر',
-    cancel: 'إلغاء',
-    save: 'حفظ الفاتورة',
-    catUtilities: 'مرافق',
-    catRent: 'إيجار',
-    catCredit: 'بطاقة ائتمان',
-    catSub: 'اشتراك',
-    catInsurance: 'تأمين',
-    catPhone: 'هاتف',
-    catInternet: 'إنترنت',
-    catOther: 'أخرى',
-    statusNotDue: 'ليست مستحقة بعد',
-    statusDueSoon: 'مستحقة قريباً',
-    statusPastDue: 'متأخرة',
-    statusPaid: 'مدفوعة',
-    badgePastDue: '⚠ متأخرة',
-    badgeDueSoon: '⏰ مستحقة قريباً',
-    badgePaid: '✓ مدفوعة',
-    badgeNotDue: 'قادمة',
-    assignedLabel: 'مخصصة لـ:',
-    paidByLabel: 'دُفعت بواسطة:',
-    bills: 'فواتير',
-    bill: 'فاتورة',
-    unpaidLabel: 'غير مدفوعة',
-    noBillsMsg: 'لا توجد فواتير هنا',
-    noBillsSub: 'أضف فاتورة جديدة أو غيّر الفلتر أعلاه',
-    deleteConfirm: 'هل تريد حذف هذه الفاتورة؟ لا يمكن التراجع.',
-    errName: 'الرجاء إدخال اسم الفاتورة.',
-    errAmount: 'الرجاء إدخال مبلغ صحيح.',
-    errDate: 'الرجاء إدخال تاريخ الاستحقاق.',
-    daysOverdue: 'أيام متأخرة',
-    dayOverdue: 'يوم متأخر',
-    daysLeft: 'أيام متبقية',
-    dayLeft: 'يوم متبقي',
-    dueToday: 'مستحقة اليوم!',
-    allBillsLabel: 'كل الفواتير',
-    unpaidBillsLabel: 'الفواتير غير المدفوعة',
-    pastDueBillsLabel: 'الفواتير المتأخرة',
-    dueSoonLabel: 'مستحقة هذا الأسبوع',
-    paidBillsLabel: 'الفواتير المدفوعة',
-    paidOn: 'دُفعت في'
-  }
-};
-
-// ═══════════════════════════════════════════════════════════
-// STATE
-// ═══════════════════════════════════════════════════════════
-let bills = [];
-let currentFilter = 'all';
-let currentMember = 'all';
-let currentLang = 'en';
-let editingId = null;
-
-// ═══════════════════════════════════════════════════════════
-// SEED DATA — Your real bills pre-loaded
-// ═══════════════════════════════════════════════════════════
-const seedBills = [
-  {
-    id: genId(), name: 'Washington Gas', company: 'Washington Gas',
-    amount: 183.96, dueDate: '2026-04-28',
-    category: 'Utilities', status: 'past-due',
-    payMethod: '', datePaid: '',
-    assignedTo: 'Shared Family', paidBy: '',
-    notes: 'Previous balance $109.78 + current gas charges $43.60 + other charges $30.58. Includes late fee $0.80 and installment plan $29.78. Remaining installment balance: $178.69.',
-    recurring: true
-  },
-  {
-    id: genId(), name: 'NOVEC Electricity', company: 'NOVEC',
-    amount: 285.81, dueDate: '2026-05-22',
-    category: 'Utilities', status: 'due-soon',
-    payMethod: '', datePaid: '',
-    assignedTo: 'Shared Family', paidBy: '',
-    notes: 'Past due $136.76 + current $149.05 + late fee $1.99. Usage: 980 kWh. Warning: 1.5% penalty if not paid by due date.',
-    recurring: true
-  },
-  {
-    id: genId(), name: 'Loudoun Water', company: 'Loudoun Water',
-    amount: 119.80, dueDate: '2026-05-04',
-    category: 'Utilities', status: 'past-due',
-    payMethod: '', datePaid: '',
-    assignedTo: 'Shared Family', paidBy: '',
-    notes: 'NOTICE: Amount shown is extra charges only — real total may be higher. Late fee $21.39 (Nov 2025), late fee $43.41 (Feb 2026), collection charge $55.00 (May 2026).',
-    recurring: true
-  }
-];
-
-// ═══════════════════════════════════════════════════════════
-// HELPERS
-// ═══════════════════════════════════════════════════════════
-function genId() {
-  return Date.now().toString(36) + Math.random().toString(36).slice(2, 7);
-}
-function t(key) { return T[currentLang][key] || T.en[key] || key; }
-function fmt(amount) {
-  return '$' + Number(amount).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-}
-function fmtDate(dateStr) {
-  if (!dateStr) return '—';
-  const [y, m, d] = dateStr.split('-');
-  const months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
-  return months[parseInt(m)-1] + ' ' + parseInt(d) + ', ' + y;
-}
-function getStatusClass(bill) {
-  if (bill.status === 'paid') return 'paid';
-  if (bill.status === 'past-due') return 'past-due';
-  const today = new Date(); today.setHours(0,0,0,0);
-  const due = new Date(bill.dueDate + 'T00:00:00');
-  if (due < today) return 'past-due';
-  const diff = (due - today) / (1000*60*60*24);
-  if (diff <= 7) return 'due-soon';
-  return 'not-due';
-}
-function getDaysInfo(dateStr, status) {
-  if (status === 'paid') return '';
-  const today = new Date(); today.setHours(0,0,0,0);
-  const due = new Date(dateStr + 'T00:00:00');
-  const diff = Math.round((due - today) / (1000*60*60*24));
-  if (diff < 0) return ` · ${Math.abs(diff)} ${Math.abs(diff)===1 ? t('dayOverdue') : t('daysOverdue')}`;
-  if (diff === 0) return ` · ${t('dueToday')}`;
-  if (diff <= 7) return ` · ${diff} ${diff===1 ? t('dayLeft') : t('daysLeft')}`;
-  return '';
-}
-
-// ═══════════════════════════════════════════════════════════
-// STORAGE
-// ═══════════════════════════════════════════════════════════
-function save() { localStorage.setItem('billTracker_v3', JSON.stringify(bills)); }
-function load() {
-  const raw = localStorage.getItem('billTracker_v3');
-  if (raw) { bills = JSON.parse(raw); }
-  else { bills = seedBills; save(); }
-  // Load saved language
-  const savedLang = localStorage.getItem('billTrackerLang');
-  if (savedLang) { currentLang = savedLang; }
-}
-
-// ═══════════════════════════════════════════════════════════
-// LANGUAGE
-// ═══════════════════════════════════════════════════════════
-function setLang(lang) {
-  currentLang = lang;
-  localStorage.setItem('billTrackerLang', lang);
-  const root = document.getElementById('htmlRoot');
-  if (lang === 'ar') {
-    root.setAttribute('lang', 'ar');
-    root.setAttribute('dir', 'rtl');
-    document.getElementById('btnAr').classList.add('active');
-    document.getElementById('btnEn').classList.remove('active');
-  } else {
-    root.setAttribute('lang', 'en');
-    root.setAttribute('dir', 'ltr');
-    document.getElementById('btnEn').classList.add('active');
-    document.getElementById('btnAr').classList.remove('active');
-  }
-  applyTranslations();
-  render();
-}
-
-function applyTranslations() {
-  // Translate all elements with data-t attribute
-  document.querySelectorAll('[data-t]').forEach(el => {
-    const key = el.getAttribute('data-t');
-    const val = t(key);
-    if (val) el.textContent = val;
-  });
-  // Translate select options individually
-  document.querySelectorAll('select option[data-t]').forEach(opt => {
-    const key = opt.getAttribute('data-t');
-    const val = t(key);
-    if (val) opt.textContent = val;
-  });
-  // Update member tabs text
-  document.querySelectorAll('.member-tab[data-t]').forEach(btn => {
-    const key = btn.getAttribute('data-t');
-    const val = t(key);
-    if (val) btn.textContent = val;
-  });
-  // Page title
-  document.title = currentLang === 'ar' ? 'متتبع الفواتير' : 'Bill Tracker';
-}
-
-// ═══════════════════════════════════════════════════════════
-// SHARING INFO TOGGLE
-// ═══════════════════════════════════════════════════════════
-function toggleShareInfo() {
-  const box = document.getElementById('shareInfoBox');
-  box.classList.toggle('show');
-}
-
-// ═══════════════════════════════════════════════════════════
-// FILTER STATE
-// ═══════════════════════════════════════════════════════════
-function setFilter(filter, btn) {
-  currentFilter = filter;
-  document.querySelectorAll('.filter-tab').forEach(t => t.classList.remove('active'));
-  if (btn) btn.classList.add('active');
-  render();
-}
-function setMember(member, btn) {
-  currentMember = member;
-  document.querySelectorAll('.member-tab').forEach(t => t.classList.remove('active'));
-  if (btn) btn.classList.add('active');
-  render();
-}
-
-function getFiltered() {
-  return bills.filter(b => {
-    const s = getStatusClass(b);
-    // Status filter
-    if (currentFilter === 'unpaid' && s === 'paid') return false;
-    if (currentFilter === 'past-due' && s !== 'past-due') return false;
-    if (currentFilter === 'due-soon' && s !== 'due-soon') return false;
-    if (currentFilter === 'paid' && s !== 'paid') return false;
-    // Member filter
-    if (currentMember !== 'all' && b.assignedTo !== currentMember) return false;
-    return true;
-  });
-}
-
-// ═══════════════════════════════════════════════════════════
-// RENDER
-// ═══════════════════════════════════════════════════════════
-function render() {
-  // Header date
-  const now = new Date();
-  document.getElementById('headerDate').textContent =
-    now.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' });
-
-  // Summary counts
-  let pastDueAmt=0, pastDueCount=0, dueSoonAmt=0, dueSoonCount=0;
-  let paidAmt=0, paidCount=0, totalDue=0, totalUnpaid=0;
-  const thisMonth=now.getMonth(), thisYear=now.getFullYear();
-
-  bills.forEach(b => {
-    const s = getStatusClass(b);
-    if (s==='past-due') { pastDueAmt+=b.amount; pastDueCount++; totalDue+=b.amount; totalUnpaid++; }
-    if (s==='due-soon') { dueSoonAmt+=b.amount; dueSoonCount++; totalDue+=b.amount; totalUnpaid++; }
-    if (s==='not-due') { totalDue+=b.amount; totalUnpaid++; }
-    if (s==='paid') {
-      if (b.datePaid) {
-        const pd=new Date(b.datePaid);
-        if (pd.getMonth()===thisMonth && pd.getFullYear()===thisYear) { paidAmt+=b.amount; paidCount++; }
-      } else { paidAmt+=b.amount; paidCount++; }
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Family Bill Tracker | متتبع فواتير العائلة</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg: #f5f6fa;
+      --surface: #ffffff;
+      --surface2: #eef0f5;
+      --surface3: #e3e6ee;
+      --text: #16171a;
+      --text2: #5f6673;
+      --muted: #8a92a3;
+      --border: #d9dde7;
+      --accent: #6d5dfc;
+      --red: #d93636;
+      --red-bg: #ffe8e8;
+      --yellow: #b7791f;
+      --yellow-bg: #fff3d8;
+      --green: #16834a;
+      --green-bg: #ddf8ea;
+      --shadow: 0 12px 28px rgba(0,0,0,0.08);
     }
-  });
 
-  const billWord = n => n===1 ? t('bill') : t('bills');
-  document.getElementById('sumPastDue').textContent = fmt(pastDueAmt);
-  document.getElementById('sumPastDueCount').textContent = pastDueCount + ' ' + billWord(pastDueCount);
-  document.getElementById('sumDueSoon').textContent = fmt(dueSoonAmt);
-  document.getElementById('sumDueSoonCount').textContent = dueSoonCount + ' ' + billWord(dueSoonCount);
-  document.getElementById('sumPaid').textContent = fmt(paidAmt);
-  document.getElementById('sumPaidCount').textContent = paidCount + ' ' + billWord(paidCount);
-  document.getElementById('sumTotal').textContent = fmt(totalDue);
-  document.getElementById('sumTotalCount').textContent = totalUnpaid + ' ' + t('unpaidLabel');
+    [data-theme="dark"] {
+      --bg: #0f0f12;
+      --surface: #18181d;
+      --surface2: #23232b;
+      --surface3: #2d2d36;
+      --text: #f2f2f5;
+      --text2: #b7b7c2;
+      --muted: #777786;
+      --border: #33333e;
+      --shadow: 0 12px 28px rgba(0,0,0,0.35);
+    }
 
-  // Priority banner
-  const pastDueBills = bills.filter(b=>getStatusClass(b)==='past-due').sort((a,b)=>b.amount-a.amount);
-  const banner = document.getElementById('priorityBanner');
-  if (pastDueBills.length > 0) {
-    banner.classList.add('show');
-    document.getElementById('priorityList').innerHTML = pastDueBills
-      .map(b=>`📌 ${b.name} — ${fmt(b.amount)} · ${b.assignedTo||''}`)
-      .join('<br>');
-  } else { banner.classList.remove('show'); }
+    body {
+      font-family: Arial, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+    }
 
-  // List label
-  const listLabels = {
-    all: t('allBillsLabel'), unpaid: t('unpaidBillsLabel'),
-    'past-due': t('pastDueBillsLabel'), 'due-soon': t('dueSoonLabel'), paid: t('paidBillsLabel')
-  };
-  document.getElementById('listLabel').textContent = listLabels[currentFilter] || t('allBillsLabel');
+    [dir="rtl"] body {
+      font-family: Tahoma, Arial, sans-serif;
+      text-align: right;
+    }
 
-  // Bills
-  const filtered = getFiltered();
-  document.getElementById('listCount').textContent = filtered.length;
-  const listEl = document.getElementById('billList');
+    header {
+      background: var(--surface);
+      border-bottom: 1px solid var(--border);
+      padding: 16px;
+      position: sticky;
+      top: 0;
+      z-index: 10;
+    }
 
-  if (filtered.length === 0) {
-    listEl.innerHTML = `
-      <div class="empty-state">
-        <div style="font-size:30px; margin-bottom:10px;">✅</div>
-        <div style="font-size:14px; font-weight:500;">${t('noBillsMsg')}</div>
-        <p>${t('noBillsSub')}</p>
-      </div>`;
-    return;
-  }
+    .header-inner {
+      max-width: 1050px;
+      margin: auto;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      flex-wrap: wrap;
+    }
 
-  const order = { 'past-due':0, 'due-soon':1, 'not-due':2, 'paid':3 };
-  filtered.sort((a,b) => {
-    const sa=order[getStatusClass(a)], sb=order[getStatusClass(b)];
-    if (sa!==sb) return sa-sb;
-    return new Date(a.dueDate)-new Date(b.dueDate);
-  });
+    h1 {
+      font-size: 22px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
 
-  listEl.innerHTML = filtered.map(bill => {
-    const s = getStatusClass(bill);
-    const badgeClass = { 'past-due':'badge-past-due','due-soon':'badge-due-soon','paid':'badge-paid','not-due':'badge-not-due' }[s];
-    const badgeLabel = { 'past-due':t('badgePastDue'),'due-soon':t('badgeDueSoon'),'paid':t('badgePaid'),'not-due':t('badgeNotDue') }[s];
-    const checkMark = s==='paid' ? '✓' : '';
-    const daysInfo = getDaysInfo(bill.dueDate, s);
+    .controls {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
 
-    return `
-      <div class="bill-card ${s}">
-        <button class="bill-check" onclick="togglePaid('${bill.id}')" title="${t('statusPaid')}">${checkMark}</button>
-        <div class="bill-info">
-          <div class="bill-name">${bill.name}</div>
-          <div class="bill-meta">
-            <span class="bill-meta-item">📂 ${bill.category}</span>
-            ${bill.company ? `<span class="bill-meta-item">🏢 ${bill.company}</span>` : ''}
-            <span class="bill-meta-item">📅 ${fmtDate(bill.dueDate)}${daysInfo}</span>
-            ${bill.payMethod ? `<span class="bill-meta-item">💳 ${bill.payMethod}</span>` : ''}
-            ${bill.recurring ? `<span class="bill-meta-item">🔁</span>` : ''}
+    button, select, input, textarea {
+      font-family: inherit;
+    }
+
+    button {
+      border: none;
+      cursor: pointer;
+      border-radius: 10px;
+      padding: 10px 14px;
+      font-weight: 700;
+      background: var(--surface2);
+      color: var(--text);
+      transition: 0.15s;
+    }
+
+    button:hover { transform: translateY(-1px); }
+
+    .primary {
+      background: var(--accent);
+      color: white;
+    }
+
+    .danger-btn {
+      background: var(--red-bg);
+      color: var(--red);
+    }
+
+    .paid-btn {
+      background: var(--green-bg);
+      color: var(--green);
+    }
+
+    .small-btn {
+      padding: 7px 10px;
+      font-size: 13px;
+    }
+
+    main {
+      max-width: 1050px;
+      margin: auto;
+      padding: 20px 14px 60px;
+    }
+
+    .connection {
+      margin-bottom: 14px;
+      padding: 12px 14px;
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      background: var(--surface);
+      color: var(--text2);
+      font-size: 14px;
+    }
+
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 12px;
+      margin-bottom: 16px;
+    }
+
+    .card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 16px;
+      box-shadow: var(--shadow);
+    }
+
+    .summary-title {
+      color: var(--muted);
+      font-size: 12px;
+      text-transform: uppercase;
+      letter-spacing: .05em;
+      margin-bottom: 6px;
+    }
+
+    .summary-value {
+      font-size: 24px;
+      font-weight: 800;
+    }
+
+    .red { color: var(--red); }
+    .yellow { color: var(--yellow); }
+    .green { color: var(--green); }
+
+    .toolbar {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 14px;
+      flex-wrap: wrap;
+    }
+
+    .filters {
+      display: flex;
+      gap: 7px;
+      flex-wrap: wrap;
+    }
+
+    .filters button.active {
+      background: var(--accent);
+      color: white;
+    }
+
+    .bill-list {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+
+    .bill {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-left: 6px solid var(--surface3);
+      border-radius: 16px;
+      padding: 14px;
+      box-shadow: var(--shadow);
+      display: grid;
+      grid-template-columns: 1fr auto;
+      gap: 12px;
+    }
+
+    [dir="rtl"] .bill {
+      border-left: 1px solid var(--border);
+      border-right: 6px solid var(--surface3);
+    }
+
+    .bill.past-due { border-left-color: var(--red); }
+    .bill.due-soon { border-left-color: var(--yellow); }
+    .bill.paid { border-left-color: var(--green); opacity: 0.72; }
+
+    [dir="rtl"] .bill.past-due { border-right-color: var(--red); }
+    [dir="rtl"] .bill.due-soon { border-right-color: var(--yellow); }
+    [dir="rtl"] .bill.paid { border-right-color: var(--green); }
+
+    .bill h3 { font-size: 18px; margin-bottom: 5px; }
+    .meta { color: var(--text2); font-size: 14px; line-height: 1.7; }
+    .notes { margin-top: 6px; color: var(--muted); font-size: 13px; line-height: 1.5; }
+    .amount { font-size: 20px; font-weight: 900; text-align: right; }
+    [dir="rtl"] .amount { text-align: left; }
+
+    .badge {
+      display: inline-block;
+      padding: 4px 9px;
+      border-radius: 999px;
+      font-size: 12px;
+      font-weight: 800;
+      margin-top: 4px;
+    }
+
+    .badge.past-due { background: var(--red-bg); color: var(--red); }
+    .badge.due-soon { background: var(--yellow-bg); color: var(--yellow); }
+    .badge.paid { background: var(--green-bg); color: var(--green); }
+    .badge.not-due { background: var(--surface2); color: var(--text2); }
+
+    .actions {
+      display: flex;
+      gap: 6px;
+      justify-content: flex-end;
+      margin-top: 10px;
+      flex-wrap: wrap;
+    }
+
+    .empty {
+      padding: 35px;
+      text-align: center;
+      color: var(--muted);
+      background: var(--surface);
+      border: 1px dashed var(--border);
+      border-radius: 16px;
+    }
+
+    .modal-backdrop {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,0.65);
+      z-index: 50;
+      align-items: center;
+      justify-content: center;
+      padding: 16px;
+    }
+
+    .modal-backdrop.open { display: flex; }
+
+    .modal {
+      background: var(--surface);
+      color: var(--text);
+      border-radius: 18px;
+      border: 1px solid var(--border);
+      width: 100%;
+      max-width: 650px;
+      max-height: 92vh;
+      overflow-y: auto;
+      padding: 18px;
+      box-shadow: var(--shadow);
+    }
+
+    .modal-head {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 14px;
+    }
+
+    .form-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+    }
+
+    label {
+      color: var(--text2);
+      font-size: 13px;
+      font-weight: 800;
+      display: block;
+      margin-bottom: 5px;
+    }
+
+    input, select, textarea {
+      width: 100%;
+      border: 1px solid var(--border);
+      background: var(--surface2);
+      color: var(--text);
+      border-radius: 10px;
+      padding: 11px;
+      outline: none;
+    }
+
+    textarea {
+      min-height: 80px;
+      resize: vertical;
+    }
+
+    .full { grid-column: 1 / -1; }
+
+    .modal-actions {
+      display: flex;
+      justify-content: flex-end;
+      gap: 10px;
+      margin-top: 16px;
+    }
+
+    .warning {
+      color: var(--yellow);
+      font-size: 13px;
+      margin-top: 8px;
+      line-height: 1.5;
+    }
+
+    @media (max-width: 760px) {
+      .grid { grid-template-columns: 1fr 1fr; }
+      .bill { grid-template-columns: 1fr; }
+      .amount { text-align: left; }
+      [dir="rtl"] .amount { text-align: right; }
+      .form-grid { grid-template-columns: 1fr; }
+      .full { grid-column: 1; }
+    }
+  </style>
+</head>
+
+<body>
+  <header>
+    <div class="header-inner">
+      <h1>💰 <span data-t="title">Family Bill Tracker</span></h1>
+      <div class="controls">
+        <button class="small-btn" id="themeBtn">🌙 <span data-t="dark">Dark</span></button>
+        <button class="small-btn" id="langBtn">عربي</button>
+        <button class="primary" id="addBtn">+ <span data-t="addBill">Add Bill</span></button>
+      </div>
+    </div>
+  </header>
+
+  <main>
+    <div class="connection" id="connectionBox">Connecting to Firebase...</div>
+
+    <section class="grid">
+      <div class="card">
+        <div class="summary-title" data-t="totalUnpaid">Total Unpaid</div>
+        <div class="summary-value" id="totalUnpaid">$0.00</div>
+      </div>
+      <div class="card">
+        <div class="summary-title" data-t="pastDue">Past Due</div>
+        <div class="summary-value red" id="totalPastDue">$0.00</div>
+      </div>
+      <div class="card">
+        <div class="summary-title" data-t="dueSoon">Due Soon</div>
+        <div class="summary-value yellow" id="totalDueSoon">$0.00</div>
+      </div>
+      <div class="card">
+        <div class="summary-title" data-t="paid">Paid</div>
+        <div class="summary-value green" id="totalPaid">$0.00</div>
+      </div>
+    </section>
+
+    <section class="toolbar">
+      <div class="filters">
+        <button class="filter active" data-filter="all" data-t="all">All</button>
+        <button class="filter" data-filter="unpaid" data-t="unpaid">Unpaid</button>
+        <button class="filter" data-filter="past-due" data-t="pastDue">Past Due</button>
+        <button class="filter" data-filter="due-soon" data-t="dueSoon">Due Soon</button>
+        <button class="filter" data-filter="paid" data-t="paid">Paid</button>
+      </div>
+    </section>
+
+    <section id="billList" class="bill-list"></section>
+
+    <p class="warning" data-t="privacy">
+      Do not store bank numbers, card numbers, SSNs, or account numbers here. Use this only for bill name, amount, due date, and status.
+    </p>
+  </main>
+
+  <div class="modal-backdrop" id="modal">
+    <div class="modal">
+      <div class="modal-head">
+        <h2 id="modalTitle" data-t="addBill">Add Bill</h2>
+        <button id="closeBtn">✕</button>
+      </div>
+
+      <form id="billForm">
+        <div class="form-grid">
+          <div>
+            <label data-t="billName">Bill Name</label>
+            <input id="name" required placeholder="Washington Gas" />
           </div>
-          <div class="bill-meta" style="margin-top:4px; gap:6px;">
-            ${bill.assignedTo ? `<span class="assigned-badge">👤 ${t('assignedLabel')} ${bill.assignedTo}</span>` : ''}
-            ${bill.paidBy ? `<span class="paidby-badge">✓ ${t('paidByLabel')} ${bill.paidBy}</span>` : ''}
+
+          <div>
+            <label data-t="provider">Provider / Company</label>
+            <input id="provider" placeholder="NOVEC" />
           </div>
-          ${bill.notes ? `<div class="bill-notes">📝 ${bill.notes}</div>` : ''}
-          ${bill.datePaid && s==='paid' ? `<div class="bill-notes" style="color:var(--green-text)">✓ ${t('paidOn')} ${fmtDate(bill.datePaid)}</div>` : ''}
+
+          <div>
+            <label data-t="amount">Amount Due</label>
+            <input id="amount" type="number" step="0.01" min="0" required placeholder="0.00" />
+          </div>
+
+          <div>
+            <label data-t="dueDate">Due Date</label>
+            <input id="dueDate" type="date" required />
+          </div>
+
+          <div>
+            <label data-t="status">Status</label>
+            <select id="status">
+              <option value="not-due" data-t="notDue">Not Due Yet</option>
+              <option value="due-soon" data-t="dueSoon">Due Soon</option>
+              <option value="past-due" data-t="pastDue">Past Due</option>
+              <option value="paid" data-t="paid">Paid</option>
+            </select>
+          </div>
+
+          <div>
+            <label data-t="category">Category</label>
+            <select id="category">
+              <option>Utilities</option>
+              <option>Rent</option>
+              <option>Credit Card</option>
+              <option>Subscription</option>
+              <option>Insurance</option>
+              <option>Phone</option>
+              <option>Internet</option>
+              <option>Other</option>
+            </select>
+          </div>
+
+          <div>
+            <label data-t="assignedTo">Assigned To</label>
+            <select id="assignedTo">
+              <option>Me</option>
+              <option>Mom</option>
+              <option>Dad</option>
+              <option>Brother</option>
+              <option>Sister</option>
+              <option>Shared Family</option>
+            </select>
+          </div>
+
+          <div>
+            <label data-t="paidBy">Paid By</label>
+            <select id="paidBy">
+              <option value="">Not paid yet</option>
+              <option>Me</option>
+              <option>Mom</option>
+              <option>Dad</option>
+              <option>Brother</option>
+              <option>Sister</option>
+              <option>Shared Family</option>
+            </select>
+          </div>
+
+          <div>
+            <label data-t="datePaid">Date Paid</label>
+            <input id="datePaid" type="date" />
+          </div>
+
+          <div>
+            <label data-t="paymentMethod">Payment Method</label>
+            <input id="paymentMethod" placeholder="Bank, card, cash..." />
+          </div>
+
+          <div class="full">
+            <label data-t="notes">Notes</label>
+            <textarea id="notes" placeholder="Past due balance, late fee, reminder..."></textarea>
+          </div>
         </div>
-        <div class="bill-amount-col">
-          <div class="bill-amount">${fmt(bill.amount)}</div>
-          <div><span class="bill-status-badge ${badgeClass}">${badgeLabel}</span></div>
+
+        <div class="modal-actions">
+          <button type="button" id="cancelBtn" data-t="cancel">Cancel</button>
+          <button type="submit" class="primary" data-t="save">Save</button>
         </div>
-        <div class="bill-actions">
-          <button class="btn-icon" onclick="openEditModal('${bill.id}')" title="${t('save')}">✏️</button>
-          <button class="btn-icon danger" onclick="deleteBill('${bill.id}')" title="Delete">🗑</button>
-        </div>
-      </div>`;
-  }).join('');
-}
+      </form>
+    </div>
+  </div>
 
-// ═══════════════════════════════════════════════════════════
-// ACTIONS
-// ═══════════════════════════════════════════════════════════
-function togglePaid(id) {
-  const bill = bills.find(b=>b.id===id);
-  if (!bill) return;
-  const s = getStatusClass(bill);
-  if (s==='paid') { bill.status='not-due'; bill.datePaid=''; bill.paidBy=''; }
-  else {
-    bill.status='paid';
-    if (!bill.datePaid) bill.datePaid = new Date().toISOString().split('T')[0];
-    if (!bill.paidBy) bill.paidBy = bill.assignedTo || 'Me';
-  }
-  save(); render();
-}
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+    import {
+      getFirestore,
+      collection,
+      addDoc,
+      updateDoc,
+      deleteDoc,
+      doc,
+      onSnapshot,
+      getDocs,
+      serverTimestamp
+    } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
-function deleteBill(id) {
-  if (!confirm(t('deleteConfirm'))) return;
-  bills = bills.filter(b=>b.id!==id);
-  save(); render();
-}
+    const firebaseConfig = {
+      apiKey: "AIzaSyB69IolGhMSpeg2FiavjUQTiSGhwsNnDqg",
+      authDomain: "family-bill-tracker-f3338.firebaseapp.com",
+      projectId: "family-bill-tracker-f3338",
+      storageBucket: "family-bill-tracker-f3338.firebasestorage.app",
+      messagingSenderId: "679336606423",
+      appId: "1:679336606423:web:bce7938db1c1da30b30e92",
+      measurementId: "G-BS7R3KS36F"
+    };
 
-// ═══════════════════════════════════════════════════════════
-// MODAL
-// ═══════════════════════════════════════════════════════════
-function openAddModal() {
-  editingId = null;
-  document.getElementById('modalTitle').textContent = t('addBillTitle');
-  clearForm();
-  document.getElementById('fDueDate').value = new Date().toISOString().split('T')[0];
-  document.getElementById('modalOverlay').classList.add('open');
-}
+    const app = initializeApp(firebaseConfig);
+    const db = getFirestore(app);
+    const billsRef = collection(db, "bills");
 
-function openEditModal(id) {
-  const bill = bills.find(b=>b.id===id);
-  if (!bill) return;
-  editingId = id;
-  document.getElementById('modalTitle').textContent = t('editBillTitle');
-  document.getElementById('fName').value = bill.name;
-  document.getElementById('fCompany').value = bill.company||'';
-  document.getElementById('fAmount').value = bill.amount;
-  document.getElementById('fDueDate').value = bill.dueDate;
-  document.getElementById('fCategory').value = bill.category;
-  document.getElementById('fStatus').value = bill.status||'not-due';
-  document.getElementById('fPayMethod').value = bill.payMethod||'';
-  document.getElementById('fDatePaid').value = bill.datePaid||'';
-  document.getElementById('fAssignedTo').value = bill.assignedTo||'Me';
-  document.getElementById('fPaidBy').value = bill.paidBy||'';
-  document.getElementById('fNotes').value = bill.notes||'';
-  document.getElementById('fRecurring').checked = !!bill.recurring;
-  document.getElementById('modalOverlay').classList.add('open');
-}
+    const translations = {
+      en: {
+        title: "Family Bill Tracker",
+        addBill: "Add Bill",
+        dark: "Dark",
+        light: "Light",
+        totalUnpaid: "Total Unpaid",
+        pastDue: "Past Due",
+        dueSoon: "Due Soon",
+        paid: "Paid",
+        all: "All",
+        unpaid: "Unpaid",
+        notDue: "Not Due Yet",
+        billName: "Bill Name",
+        provider: "Provider / Company",
+        amount: "Amount Due",
+        dueDate: "Due Date",
+        status: "Status",
+        category: "Category",
+        assignedTo: "Assigned To",
+        paidBy: "Paid By",
+        datePaid: "Date Paid",
+        paymentMethod: "Payment Method",
+        notes: "Notes",
+        cancel: "Cancel",
+        save: "Save",
+        edit: "Edit",
+        delete: "Delete",
+        markPaid: "Mark Paid",
+        markUnpaid: "Mark Unpaid",
+        noBills: "No bills yet. Add one to start.",
+        connected: "✅ Connected to Firebase. Everyone with the link will see the same bills.",
+        privacy: "Do not store bank numbers, card numbers, SSNs, or account numbers here. Use this only for bill name, amount, due date, and status.",
+        confirmDelete: "Delete this bill?",
+        paidByLabel: "Paid by",
+        assignedLabel: "Assigned to",
+        dueLabel: "Due",
+        notesLabel: "Notes"
+      },
+      ar: {
+        title: "متتبع فواتير العائلة",
+        addBill: "إضافة فاتورة",
+        dark: "داكن",
+        light: "فاتح",
+        totalUnpaid: "إجمالي غير المدفوع",
+        pastDue: "متأخرة",
+        dueSoon: "مستحقة قريبًا",
+        paid: "مدفوعة",
+        all: "الكل",
+        unpaid: "غير مدفوعة",
+        notDue: "ليست مستحقة بعد",
+        billName: "اسم الفاتورة",
+        provider: "الشركة",
+        amount: "المبلغ المستحق",
+        dueDate: "تاريخ الاستحقاق",
+        status: "الحالة",
+        category: "الفئة",
+        assignedTo: "مخصصة لـ",
+        paidBy: "دُفعت بواسطة",
+        datePaid: "تاريخ الدفع",
+        paymentMethod: "طريقة الدفع",
+        notes: "ملاحظات",
+        cancel: "إلغاء",
+        save: "حفظ",
+        edit: "تعديل",
+        delete: "حذف",
+        markPaid: "تحديد كمدفوعة",
+        markUnpaid: "تحديد كغير مدفوعة",
+        noBills: "لا توجد فواتير بعد. أضف فاتورة للبدء.",
+        connected: "✅ متصل بفايربيس. كل شخص معه الرابط سيرى نفس الفواتير.",
+        privacy: "لا تحفظ أرقام الحسابات البنكية أو البطاقات أو المعلومات الحساسة هنا. استخدمه فقط لاسم الفاتورة والمبلغ وتاريخ الاستحقاق والحالة.",
+        confirmDelete: "هل تريد حذف هذه الفاتورة؟",
+        paidByLabel: "دُفعت بواسطة",
+        assignedLabel: "مخصصة لـ",
+        dueLabel: "تاريخ الاستحقاق",
+        notesLabel: "ملاحظات"
+      }
+    };
 
-function closeModal() {
-  document.getElementById('modalOverlay').classList.remove('open');
-  editingId = null;
-}
+    const seedBills = [
+      {
+        name: "Washington Gas",
+        provider: "Washington Gas",
+        amount: 183.96,
+        dueDate: "2026-04-28",
+        status: "past-due",
+        category: "Utilities",
+        assignedTo: "Shared Family",
+        paidBy: "",
+        datePaid: "",
+        paymentMethod: "",
+        notes: "Previous balance $109.78 + current gas charges $43.60 + other charges $30.58. Includes late fee $0.80 and installment plan $29.78.",
+        createdAt: serverTimestamp()
+      },
+      {
+        name: "NOVEC Electricity",
+        provider: "NOVEC",
+        amount: 285.81,
+        dueDate: "2026-05-22",
+        status: "due-soon",
+        category: "Utilities",
+        assignedTo: "Shared Family",
+        paidBy: "",
+        datePaid: "",
+        paymentMethod: "",
+        notes: "Past due $136.76 + current $149.05 + late fee $1.99. Usage: 980 kWh.",
+        createdAt: serverTimestamp()
+      },
+      {
+        name: "Loudoun Water",
+        provider: "Loudoun Water",
+        amount: 119.80,
+        dueDate: "2026-05-04",
+        status: "past-due",
+        category: "Utilities",
+        assignedTo: "Shared Family",
+        paidBy: "",
+        datePaid: "",
+        paymentMethod: "",
+        notes: "Extra charges only. Actual balance may be higher. Late fees and collection charge shown.",
+        createdAt: serverTimestamp()
+      }
+    ];
 
-function clearForm() {
-  ['fName','fCompany','fAmount','fDueDate','fPayMethod','fDatePaid','fNotes'].forEach(id => {
-    document.getElementById(id).value='';
-  });
-  document.getElementById('fCategory').value='Utilities';
-  document.getElementById('fStatus').value='not-due';
-  document.getElementById('fAssignedTo').value='Me';
-  document.getElementById('fPaidBy').value='';
-  document.getElementById('fRecurring').checked=true;
-}
+    let bills = [];
+    let currentFilter = "all";
+    let editingId = null;
+    let currentLang = localStorage.getItem("billTrackerLang") || "en";
+    let currentTheme = localStorage.getItem("billTrackerTheme") || "dark";
 
-function saveBill() {
-  const name = document.getElementById('fName').value.trim();
-  const amount = parseFloat(document.getElementById('fAmount').value);
-  const dueDate = document.getElementById('fDueDate').value;
-  if (!name) { alert(t('errName')); return; }
-  if (isNaN(amount)||amount<0) { alert(t('errAmount')); return; }
-  if (!dueDate) { alert(t('errDate')); return; }
+    const $ = (id) => document.getElementById(id);
+    const tr = (key) => translations[currentLang][key] || translations.en[key] || key;
+    const money = (num) => "$" + Number(num || 0).toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 
-  const billData = {
-    name, amount, dueDate,
-    company: document.getElementById('fCompany').value.trim(),
-    category: document.getElementById('fCategory').value,
-    status: document.getElementById('fStatus').value,
-    payMethod: document.getElementById('fPayMethod').value.trim(),
-    datePaid: document.getElementById('fDatePaid').value,
-    assignedTo: document.getElementById('fAssignedTo').value,
-    paidBy: document.getElementById('fPaidBy').value,
-    notes: document.getElementById('fNotes').value.trim(),
-    recurring: document.getElementById('fRecurring').checked
-  };
+    function todayISO() {
+      return new Date().toISOString().split("T")[0];
+    }
 
-  if (editingId) {
-    const idx = bills.findIndex(b=>b.id===editingId);
-    if (idx!==-1) bills[idx] = { ...bills[idx], ...billData };
-  } else {
-    bills.push({ id: genId(), ...billData });
-  }
-  save(); closeModal(); render();
-}
+    function statusForBill(bill) {
+      if (bill.status === "paid") return "paid";
+      if (bill.status === "past-due") return "past-due";
 
-document.getElementById('modalOverlay').addEventListener('click', function(e) {
-  if (e.target===this) closeModal();
-});
+      const today = new Date();
+      today.setHours(0,0,0,0);
+      const due = new Date(bill.dueDate + "T00:00:00");
 
-// ═══════════════════════════════════════════════════════════
-// INIT
-// ═══════════════════════════════════════════════════════════
-load();
-// Apply saved language on startup
-if (currentLang === 'ar') {
-  document.getElementById('htmlRoot').setAttribute('lang','ar');
-  document.getElementById('htmlRoot').setAttribute('dir','rtl');
-  document.getElementById('btnAr').classList.add('active');
-  document.getElementById('btnEn').classList.remove('active');
-}
-applyTranslations();
-render();
-</script>
+      if (due < today) return "past-due";
+
+      const days = Math.ceil((due - today) / (1000 * 60 * 60 * 24));
+      if (days <= 7) return "due-soon";
+
+      return "not-due";
+    }
+
+    function statusLabel(status) {
+      const map = {
+        "paid": tr("paid"),
+        "past-due": tr("pastDue"),
+        "due-soon": tr("dueSoon"),
+        "not-due": tr("notDue")
+      };
+      return map[status] || status;
+    }
+
+    function applyLanguage() {
+      document.querySelectorAll("[data-t]").forEach(el => {
+        const key = el.dataset.t;
+        el.textContent = tr(key);
+      });
+
+      $("htmlRoot").lang = currentLang;
+      $("htmlRoot").dir = currentLang === "ar" ? "rtl" : "ltr";
+      $("langBtn").textContent = currentLang === "en" ? "عربي" : "English";
+      $("connectionBox").textContent = tr("connected");
+      document.title = tr("title");
+      render();
+    }
+
+    function applyTheme() {
+      document.documentElement.setAttribute("data-theme", currentTheme);
+      const themeText = currentTheme === "dark" ? tr("light") : tr("dark");
+      $("themeBtn").innerHTML = currentTheme === "dark" ? `☀️ <span>${themeText}</span>` : `🌙 <span>${themeText}</span>`;
+    }
+
+    function filteredBills() {
+      return bills.filter(bill => {
+        const s = statusForBill(bill);
+        if (currentFilter === "all") return true;
+        if (currentFilter === "unpaid") return s !== "paid";
+        return s === currentFilter;
+      });
+    }
+
+    function renderSummary() {
+      let totalUnpaid = 0;
+      let totalPastDue = 0;
+      let totalDueSoon = 0;
+      let totalPaid = 0;
+
+      bills.forEach(bill => {
+        const s = statusForBill(bill);
+        const amount = Number(bill.amount || 0);
+
+        if (s !== "paid") totalUnpaid += amount;
+        if (s === "past-due") totalPastDue += amount;
+        if (s === "due-soon") totalDueSoon += amount;
+        if (s === "paid") totalPaid += amount;
+      });
+
+      $("totalUnpaid").textContent = money(totalUnpaid);
+      $("totalPastDue").textContent = money(totalPastDue);
+      $("totalDueSoon").textContent = money(totalDueSoon);
+      $("totalPaid").textContent = money(totalPaid);
+    }
+
+    function render() {
+      renderSummary();
+
+      const list = $("billList");
+      const data = filteredBills().sort((a, b) => {
+        const order = { "past-due": 1, "due-soon": 2, "not-due": 3, "paid": 4 };
+        return (order[statusForBill(a)] || 9) - (order[statusForBill(b)] || 9);
+      });
+
+      if (data.length === 0) {
+        list.innerHTML = `<div class="empty">${tr("noBills")}</div>`;
+        return;
+      }
+
+      list.innerHTML = data.map(bill => {
+        const s = statusForBill(bill);
+        return `
+          <div class="bill ${s}">
+            <div>
+              <h3>${escapeHTML(bill.name || "")}</h3>
+              <div class="meta">
+                🏢 ${escapeHTML(bill.provider || "—")} ·
+                📂 ${escapeHTML(bill.category || "—")} ·
+                📅 ${tr("dueLabel")}: ${escapeHTML(bill.dueDate || "—")}
+              </div>
+              <div class="meta">
+                👤 ${tr("assignedLabel")}: ${escapeHTML(bill.assignedTo || "—")}
+                ${bill.paidBy ? ` · ✅ ${tr("paidByLabel")}: ${escapeHTML(bill.paidBy)}` : ""}
+                ${bill.datePaid ? ` · ${escapeHTML(bill.datePaid)}` : ""}
+              </div>
+              ${bill.notes ? `<div class="notes">📝 ${tr("notesLabel")}: ${escapeHTML(bill.notes)}</div>` : ""}
+              <span class="badge ${s}">${statusLabel(s)}</span>
+            </div>
+
+            <div>
+              <div class="amount">${money(bill.amount)}</div>
+              <div class="actions">
+                <button class="small-btn paid-btn" onclick="togglePaid('${bill.id}')">
+                  ${s === "paid" ? tr("markUnpaid") : tr("markPaid")}
+                </button>
+                <button class="small-btn" onclick="openEdit('${bill.id}')">${tr("edit")}</button>
+                <button class="small-btn danger-btn" onclick="removeBill('${bill.id}')">${tr("delete")}</button>
+              </div>
+            </div>
+          </div>
+        `;
+      }).join("");
+    }
+
+    function escapeHTML(value) {
+      return String(value).replace(/[&<>"']/g, (char) => ({
+        "&": "&amp;",
+        "<": "&lt;",
+        ">": "&gt;",
+        '"': "&quot;",
+        "'": "&#039;"
+      }[char]));
+    }
+
+    function openAdd() {
+      editingId = null;
+      $("modalTitle").textContent = tr("addBill");
+      $("billForm").reset();
+      $("dueDate").value = todayISO();
+      $("status").value = "not-due";
+      $("category").value = "Utilities";
+      $("assignedTo").value = "Shared Family";
+      $("modal").classList.add("open");
+    }
+
+    function openEdit(id) {
+      const bill = bills.find(b => b.id === id);
+      if (!bill) return;
+
+      editingId = id;
+      $("modalTitle").textContent = tr("edit");
+      $("name").value = bill.name || "";
+      $("provider").value = bill.provider || "";
+      $("amount").value = bill.amount || "";
+      $("dueDate").value = bill.dueDate || "";
+      $("status").value = bill.status || "not-due";
+      $("category").value = bill.category || "Utilities";
+      $("assignedTo").value = bill.assignedTo || "Shared Family";
+      $("paidBy").value = bill.paidBy || "";
+      $("datePaid").value = bill.datePaid || "";
+      $("paymentMethod").value = bill.paymentMethod || "";
+      $("notes").value = bill.notes || "";
+      $("modal").classList.add("open");
+    }
+
+    function closeModal() {
+      $("modal").classList.remove("open");
+      editingId = null;
+    }
+
+    async function saveBill(event) {
+      event.preventDefault();
+
+      const billData = {
+        name: $("name").value.trim(),
+        provider: $("provider").value.trim(),
+        amount: Number($("amount").value),
+        dueDate: $("dueDate").value,
+        status: $("status").value,
+        category: $("category").value,
+        assignedTo: $("assignedTo").value,
+        paidBy: $("paidBy").value,
+        datePaid: $("datePaid").value,
+        paymentMethod: $("paymentMethod").value.trim(),
+        notes: $("notes").value.trim(),
+        updatedAt: serverTimestamp()
+      };
+
+      if (!billData.name || !billData.dueDate || Number.isNaN(billData.amount)) {
+        alert("Please fill out bill name, amount, and due date.");
+        return;
+      }
+
+      try {
+        if (editingId) {
+          await updateDoc(doc(db, "bills", editingId), billData);
+        } else {
+          await addDoc(billsRef, { ...billData, createdAt: serverTimestamp() });
+        }
+        closeModal();
+      } catch (error) {
+        console.error(error);
+        alert("Firebase save failed. Check Firestore rules and console errors.");
+      }
+    }
+
+    async function togglePaid(id) {
+      const bill = bills.find(b => b.id === id);
+      if (!bill) return;
+
+      const s = statusForBill(bill);
+      const update = s === "paid"
+        ? { status: "not-due", paidBy: "", datePaid: "", updatedAt: serverTimestamp() }
+        : { status: "paid", paidBy: bill.paidBy || bill.assignedTo || "Me", datePaid: todayISO(), updatedAt: serverTimestamp() };
+
+      try {
+        await updateDoc(doc(db, "bills", id), update);
+      } catch (error) {
+        console.error(error);
+        alert("Could not update bill. Check Firebase rules.");
+      }
+    }
+
+    async function removeBill(id) {
+      if (!confirm(tr("confirmDelete"))) return;
+
+      try {
+        await deleteDoc(doc(db, "bills", id));
+      } catch (error) {
+        console.error(error);
+        alert("Could not delete bill. Check Firebase rules.");
+      }
+    }
+
+    async function seedIfEmpty() {
+      const snapshot = await getDocs(billsRef);
+      if (snapshot.empty) {
+        for (const bill of seedBills) {
+          await addDoc(billsRef, bill);
+        }
+      }
+    }
+
+    function listenToBills() {
+      onSnapshot(billsRef, (snapshot) => {
+        bills = snapshot.docs.map(d => ({ id: d.id, ...d.data() }));
+        $("connectionBox").textContent = tr("connected");
+        render();
+      }, (error) => {
+        console.error(error);
+        $("connectionBox").textContent = "❌ Firebase error. Check Firestore rules.";
+      });
+    }
+
+    $("addBtn").addEventListener("click", openAdd);
+    $("closeBtn").addEventListener("click", closeModal);
+    $("cancelBtn").addEventListener("click", closeModal);
+    $("billForm").addEventListener("submit", saveBill);
+
+    $("themeBtn").addEventListener("click", () => {
+      currentTheme = currentTheme === "dark" ? "light" : "dark";
+      localStorage.setItem("billTrackerTheme", currentTheme);
+      applyTheme();
+    });
+
+    $("langBtn").addEventListener("click", () => {
+      currentLang = currentLang === "en" ? "ar" : "en";
+      localStorage.setItem("billTrackerLang", currentLang);
+      applyLanguage();
+      applyTheme();
+    });
+
+    document.querySelectorAll(".filter").forEach(btn => {
+      btn.addEventListener("click", () => {
+        document.querySelectorAll(".filter").forEach(b => b.classList.remove("active"));
+        btn.classList.add("active");
+        currentFilter = btn.dataset.filter;
+        render();
+      });
+    });
+
+    $("modal").addEventListener("click", (e) => {
+      if (e.target.id === "modal") closeModal();
+    });
+
+    window.openEdit = openEdit;
+    window.togglePaid = togglePaid;
+    window.removeBill = removeBill;
+
+    applyLanguage();
+    applyTheme();
+    await seedIfEmpty();
+    listenToBills();
+  </script>
 </body>
 </html>
